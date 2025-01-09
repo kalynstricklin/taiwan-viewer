@@ -12,13 +12,20 @@ import {INode} from "@/lib/data/osh/Node";
 import {Mode} from "osh-js/source/core/datasource/Mode";
 import {EventType} from "osh-js/source/core/event/EventType";
 
-import {isDynamicUsageError} from "next/dist/export/helpers/is-dynamic-usage-error";
+import {
+    isGammaDatastream,
+    isNeutronDatastream,
+    isOccupancyDatastream,
+    isTamperDatastream, isThresholdDatastream,
+    isVideoDatastream
+} from "./Utilities";
 
 class ILaneMeta {
     id: string;
     name: string;
     label: string;
     systemIds: string[];
+
 }
 
 export class LaneMeta implements ILaneMeta {
@@ -28,8 +35,8 @@ export class LaneMeta implements ILaneMeta {
     systemIds: string[];
 
 
-    constructor(name: string, systemIds: string[], hasEML: boolean = false) {
-        this.id = "station" + randomUUID();
+    constructor(name: string, systemIds: string[]) {
+        this.id = "lane" + randomUUID();
         this.name = name;
         this.label = name.replace(" ", "_").toLowerCase();
         this.systemIds = systemIds;
@@ -44,7 +51,9 @@ export class LaneMapEntry {
     datasourcesRealtime: any[];
     parentNode: INode;
     laneSystem: typeof System;
-    stationName: string;
+    private adjDs: string;
+    adjControlStreamId: string;
+    laneName: string;
 
     constructor(node: INode) {
         this.systems = [];
@@ -53,7 +62,7 @@ export class LaneMapEntry {
         this.datasourcesBatch = [];
         this.datasourcesRealtime = [];
         this.parentNode = node;
-        this.stationName = undefined
+        this.laneName = undefined
     }
 
     setLaneSystem(system: typeof System) {
@@ -83,10 +92,27 @@ export class LaneMapEntry {
     addDatasources(datasources: any[]) {
         this.datasources.push(...datasources);
     }
-    setStationName(name: string){
-        this.stationName = name;
+    setLaneName(name: string){
+        this.laneName = name;
     }
 
+    async getAdjudicationDatastream(dsId: string) {
+        let isSecure = this.parentNode.isSecure;
+        let url = this.parentNode.getConnectedSystemsEndpoint(true);
+        console.log("[ADJ-log] Creating Adjudication Datastream: ", this, url);
+        let dsApi = new DataStreams({
+            // streamProtocol: isSecure ? "https" : "http",
+            endpointUrl: `${url}`,
+            tls: isSecure,
+            connectorOpts: {
+                username: this.parentNode.auth.username,
+                password: this.parentNode.auth.password
+            }
+        });
+        let datastream = await dsApi.getDataStreamById(dsId);
+        console.log("[ADJ-log] Adjudication Datastream: ", datastream);
+        return datastream;
+    }
 
     resetDatasources() {
         for (let ds of this.datasourcesRealtime) {
@@ -111,7 +137,7 @@ export class LaneMapEntry {
                 endpointUrl: dsObj.networkProperties.endpointUrl,
                 resource: `/datastreams/${dsObj.properties.id}/observations`,
                 tls: dsObj.networkProperties.tls,
-                responseFormat: dsObj.properties.outputName === "video" ? 'application/swe+binary' : 'application/swe+json',
+                responseFormat: isVideoDatastream(dsObj) ? 'application/swe+binary' : 'application/swe+json',
                 mode: Mode.REAL_TIME,
                 connectorOpts: {
                     username: this.parentNode.auth.username,
@@ -124,7 +150,7 @@ export class LaneMapEntry {
                 endpointUrl: dsObj.networkProperties.endpointUrl,
                 resource: `/datastreams/${dsObj.properties.id}/observations`,
                 tls: dsObj.networkProperties.tls,
-                responseFormat: dsObj.properties.outputName === "video" ? 'application/swe+binary' : 'application/swe+json',
+                responseFormat: isVideoDatastream(dsObj) ? 'application/swe+binary' : 'application/swe+json',
                 mode: Mode.BATCH,
                 connectorOpts: {
                     username: this.parentNode.auth.username,
@@ -150,7 +176,7 @@ export class LaneMapEntry {
             endpointUrl: datastream.networkProperties.endpointUrl,
             resource: `/datastreams/${datastream.properties.id}/observations`,
             tls: datastream.networkProperties.tls,
-            responseFormat: datastream.properties.outputName === "video" ? 'application/swe+binary' : 'application/swe+json',
+            responseFormat: isVideoDatastream(datastream) ? 'application/swe+binary' : 'application/swe+json',
             mode: Mode.REPLAY,
             connectorOpts: {
                 username: this.parentNode.auth.username,
@@ -167,7 +193,7 @@ export class LaneMapEntry {
             endpointUrl: datastream.networkProperties.endpointUrl,
             resource: `/datastreams/${datastream.properties.id}/observations`,
             tls: datastream.networkProperties.tls,
-            responseFormat: datastream.properties.outputName === "video" ? 'application/swe+binary' : 'application/swe+json',
+            responseFormat: isVideoDatastream(datastream) ? 'application/swe+binary' : 'application/swe+json',
             mode: Mode.BATCH,
             connectorOpts: {
                 username: this.parentNode.auth.username,
@@ -190,11 +216,181 @@ export class LaneMapEntry {
 
     findDataStreamByObsProperty(obsProperty: string){
         let stream: typeof DataStream = this.datastreams.find((ds)=> {
-            console.log("FIND ds props", ds)
+            // console.log("FIND ds props", ds)
             let hasProp = ds.properties.observedProperties.some((prop: any)=> prop.definition === obsProperty)
+
             return hasProp;
         });
         return stream;
     }
 
+
+    addControlStreamId(id: string) {
+        this.adjControlStreamId = id;
+    }
+}
+
+export class LaneDSColl {
+    occRT: typeof SweApi[];
+    occBatch: typeof SweApi[];
+    gammaRT: typeof SweApi[];
+    gammaBatch: typeof SweApi[];
+    neutronRT: typeof SweApi[];
+    neutronBatch: typeof SweApi[];
+    tamperRT: typeof SweApi[];
+    tamperBatch: typeof SweApi[];
+    locRT: typeof SweApi[];
+    locBatch: typeof SweApi[];
+    gammaTrshldBatch: typeof SweApi[];
+    gammaTrshldRT: typeof SweApi[];
+    connectionRT: typeof SweApi[];
+    videoRT: typeof SweApi[];
+    adjRT: typeof SweApi[];
+    adjBatch: typeof SweApi[];
+
+
+    constructor() {
+        this.occRT = [];
+        this.occBatch = [];
+        this.gammaRT = [];
+        this.gammaBatch = [];
+        this.neutronRT = [];
+        this.neutronBatch = [];
+        this.tamperRT = [];
+        this.tamperBatch = [];
+        this.locBatch = [];
+        this.locRT = [];
+        this.gammaTrshldBatch = [];
+        this.gammaTrshldRT = [];
+        this.connectionRT = [];
+        this.videoRT = [];
+        this.adjRT = [];
+        this.adjBatch = [];
+    }
+
+    getDSArray(propName: string): typeof SweApi[] {
+        // @ts-ignore
+        return this[propName];
+    }
+
+    addDS(propName: string, ds: typeof SweApi) {
+        let dsArr = this.getDSArray(propName);
+        if (dsArr.some((d) => d.name == ds.name)) {
+            return;
+        } else {
+            dsArr.push(ds);
+        }
+    }
+
+    addSubscribeHandlerToAllBatchDS(handler: Function) {
+        for (let ds of this.occBatch) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.gammaBatch) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.neutronBatch) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.tamperBatch) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.locBatch) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.occBatch) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.gammaTrshldBatch) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.adjBatch) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+
+    }
+
+    addSubscribeHandlerToAllRTDS(handler: Function) {
+        for (let ds of this.occRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.gammaRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.neutronRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.tamperRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.locRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.gammaTrshldRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.connectionRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.videoRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+        for (let ds of this.adjRT) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+    }
+
+    [key: string]: typeof SweApi[] | Function;
+
+    addSubscribeHandlerToALLDSMatchingName(dsCollName: string, handler: Function) {
+        for (let ds of this[dsCollName] as typeof SweApi[]) {
+            ds.subscribe(handler, [EventType.DATA]);
+        }
+    }
+
+    connectAllDS() {
+        for (let ds of this.occRT) {
+            ds.connect();
+        }
+        for (let ds of this.occBatch) {
+            ds.connect();
+        }
+        for (let ds of this.gammaRT) {
+            ds.connect();
+        }
+        for (let ds of this.gammaBatch) {
+            ds.connect();
+        }
+        for (let ds of this.neutronRT) {
+            ds.connect();
+        }
+        for (let ds of this.neutronBatch) {
+            ds.connect();
+        }
+        for (let ds of this.tamperRT) {
+            ds.connect();
+        }
+        for (let ds of this.tamperBatch) {
+            ds.connect();
+        }
+        for (let ds of this.locRT) {
+            ds.connect();
+        }
+        for (let ds of this.locBatch) {
+            ds.connect();
+        }
+        for (let ds of this.gammaTrshldBatch) {
+            ds.connect();
+        }
+        for (let ds of this.gammaTrshldRT) {
+            ds.connect();
+        }
+        for (let ds of this.connectionRT) {
+            ds.connect();
+        }
+        for (let ds of this.videoRT) {
+            ds.connect();
+        }
+        // console.info("Connecting all datasources of:", this);
+    }
 }

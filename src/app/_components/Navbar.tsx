@@ -187,7 +187,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           </IconButton>
           <Stack direction={"row"} width={"100%"} alignItems={"center"} justifyContent={"space-between"}>
             <Typography variant="h6" noWrap component="div">
-              SensorThings Ingest Viewer
+              SensorThings
             </Typography>
             <IconButton
               color="inherit"

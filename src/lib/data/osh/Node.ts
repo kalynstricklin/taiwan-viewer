@@ -29,7 +29,6 @@ export interface INode {
     isSecure: boolean,
     auth: { username: string, password: string } | null,
     isDefaultNode: boolean
-    laneAdjMap?: Map<string, string>
 
     getConnectedSystemsEndpoint(noProtocolPrefix: boolean): string,
 
@@ -46,10 +45,6 @@ export interface INode {
     fetchDatastreamsTK(laneMap: Map<string, LaneMapEntry>): void,
 
     insertSubSystem(systemJSON: any, parentSystemId: string): Promise<string>
-
-    // insertAdjSystem(systemJSON: any): Promise<string>
-    //
-    // insertAdjDatastream(systemId: string): Promise<string>
 
     insertObservation(observationJSON: any, datastreamId: string): Promise<string>
 
@@ -206,7 +201,7 @@ export class Node implements INode {
         let systems = await this.fetchSystemsTK();
         let laneMap = new Map<string, LaneMapEntry>();
 
-        console.log("TK Systems retrieved:", systems);
+        console.log("TK Systems retrieved!!!!:", systems);
 
         // filter into lanes
         for (let system of systems) {
@@ -221,7 +216,7 @@ export class Node implements INode {
                     laneMap.get(stationName).setLaneSystem(system);
                 } else {
                     let tLaneEntry = new LaneMapEntry(this);
-                    tLaneEntry.setStationName(stationName);
+                    tLaneEntry.setLaneName(stationName);
                     laneMap.set(stationName, tLaneEntry);
                     // console.log("TK LaneMap:", laneMap, laneName);
                     let entry = laneMap.get(stationName);

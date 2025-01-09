@@ -1,145 +1,133 @@
 "use client"
 
+import React, {useCallback, useContext, useEffect, useRef, useState} from "react";
 import PointMarkerLayer from "osh-js/source/core/ui/layer/PointMarkerLayer";
 import LeafletView from "osh-js/source/core/ui/view/map/LeafletView";
+
 import Box from "@mui/material/Box";
 import '../../style/map.css';
-import "leaflet/dist/leaflet.css"
-import SosGetFois from 'osh-js/source/core/datasource/sos/SosGetFois.datasource';
-import L from "leaflet";
 
+import "leaflet/dist/leaflet.css"
+
+import Systems from 'osh-js/source/core/sweapi/system/Systems';
+import SystemFilter from "osh-js/source/core/sweapi/system/SystemFilter";
+import DataStreamFilter from "osh-js/source/core/sweapi/datastream/DataStreamFilter";
+import System from "osh-js/source/core/sweapi/system/System";
+import DataStreams from "osh-js/source/core/sweapi/datastream/DataStreams";
+import SweApi from "osh-js/source/core/datasource/sweapi/SweApi.datasource"
+import DataSynchronizer from 'osh-js/source/core/timesync/DataSynchronizer'
+import {Mode} from 'osh-js/source/core/datasource/Mode';
+
+import FeaturesOfInterest from "osh-js/source/core/sweapi/featureofinterest/FeatureOfInterests.js";
+import FeatureOfInterestFilter from "osh-js/source/core/sweapi/featureofinterest/FeatureOfInterestFilter.js";
 
 export default function MapComponent() {
 
-    let sosGetFois = new SosGetFois('fois', {
-        endpointUrl: 'http://localhost:8282/sensorhub/api/',
-        procedureId: '',
-        tls: true
-    });
+    const leafletViewRef = useRef<typeof LeafletView | null>(null);
+    const mapcontainer: string = "mapcontainer";
 
-    let leafletView = new LeafletView({
-        container: "mapcontainer",
-        autoZoomOnFirstMarker: false,
-        layers: [
-            new PointMarkerLayer({
-                dataSourceId: sosGetFois.id,
-                getLocation: (f: any) => {
-                    let pos = f.shape.pos.split(" ");
-                    return {
-                        x: parseFloat(pos[1]),
-                        y: parseFloat(pos[0])
-                    }
-                },
-                getDescription:(f: any) => {
-                    let pos = f.shape.pos.split(" ");
-                    return  f.description + "<br/>" +
-                        "Latitude: " + pos[0] + "°<br/>" +
-                        "Longitude: " + pos[1] + "°"
-                },
-                getMarkerId:(f: any) => f.id,
-                icon: 'images/circle.svg',
-                iconAnchor: [12, 41],
-                getLabel: (f: any) =>  f.id,
-                labelColor: '#000000',
-                labelSize: 28,
-                labelOffset: [0, 10],
-                iconSize: [25,41]
-
-            }),
-        ]
-    });
-
-    leafletView.map.setView(new L.LatLng(42.406025,-76.060832), 7);
-
-    sosGetFois.connect();
-
-    // const leafletViewRef = useRef<typeof LeafletView | null>(null);
-    // const [locationList, setLocationList] = useState<StationWithLocation[] | null>(null);
-    // const mapcontainer: string = "mapcontainer";
-    //
-    // const [isInit, setIsInt] = useState(false);
-    //
-    // const {laneMapRef} = useContext(DataSourceContext);
-    // const [dataSourcesByLane, setDataSourcesByLane] = useState<Map<string, LaneDSColl>>(new Map<string, LaneDSColl>());
-    // const laneMap = useSelector((state: RootState) => selectLaneMap(state));
-    //
-    // const [dsLocations, setDsLocations] = useState([]);
-
-    // useEffect(() =>{
-    //     if(locationList == null || locationList.length === 0 && laneMap.size > 0) {
-    //         let locations: StationWithLocation[] = [];
-    //         laneMap.forEach((value, key) => {
-    //             if (laneMap.has(key)) {
-    //                 let ds: LaneMapEntry = laneMap.get(key);
-    //
-    //                 dsLocations.map((dss) => {
-    //                     const locationSources = ds.datasourcesBatch.filter((item) => (item.properties.resource === ("/datastreams/" + dss.properties.id + "/observations")))
-    //
-    //                     const laneWithLocation: StationWithLocation = {
-    //                         stationName: key,
-    //                         locationSources: locationSources,
-    //                     };
-    //
-    //                     locations.push(laneWithLocation);
-    //
-    //                     }
-    //                 )
-    //             }
-    //         });
-    //         setLocationList(locations);
-    //     }
-    // },[laneMap, dsLocations]);
-    //
-    // /*****************lane status datasources******************/
-    // const datasourceSetup = useCallback(async () => {
-    //     // @ts-ignore
-    //     let laneDSMap = new Map<string, LaneDSColl>();
-    //
-    //     let locationDs: any[] = [];
-    //
-    //     for (let [laneid, lane] of laneMapRef.current.entries()) {
-    //         laneDSMap.set(laneid, new LaneDSColl());
-    //         for (let ds of lane.datastreams) {
-    //
-    //             let idx: number = lane.datastreams.indexOf(ds);
-    //             let rtDS = lane.datasourcesRealtime[idx];
-    //             let batchDS = lane.datasourcesBatch[idx];
-    //             let laneDSColl = laneDSMap.get(laneid);
-    //
-    //             if (ds.properties.observedProperties[0].definition.includes("http://www.opengis.net/def/property/OGC/0/SensorLocation") && !ds.properties.name.includes('Rapiscan') || ds.properties.observedProperties[0].definition.includes('http://sensorml.com/ont/swe/property/LocationVector')) {
-    //                 laneDSColl.addDS('locBatch', batchDS);
-    //                 locationDs.push(ds);
-    //             }
-    //
-    //         }
-    //         setDsLocations(locationDs);
-    //         setDataSourcesByLane(laneDSMap);
-    //     }
-    // }, [laneMapRef.current]);
-    //
-    //
-    //
-    // useEffect(() => {
-    //     datasourceSetup();
-    // }, [laneMapRef.current]);
+    const [isInit, setIsInt] = useState(false);
 
 
-    // useEffect(() => {
-    //
-    //     if (!leafletViewRef.current && !isInit) {
-    //         let view = new LeafletView({
-    //             container: mapcontainer,
-    //             layers: [],
-    //
-    //             autoZoomOnFirstMarker: true
-    //         });
-    //         console.log('new view created')
-    //         leafletViewRef.current = view;
-    //         setIsInt(true);
-    //     }
-    //
-    // }, [isInit]);
-    //
+    const networkOpts = {
+        endpointUrl: `192.168.1.69:8282/sensorhub/api`,
+        tls: false,
+        connectorOpts: {
+            username: 'admin',
+            password: 'admin',
+        }
+    };
+
+
+    const systems = new Systems(networkOpts);
+    const datastreams = new DataStreams(networkOpts);
+    const samplingFeatures = new FeaturesOfInterest(networkOpts);
+
+
+    useEffect(() => {
+
+        async function fetchSystems() {
+            const availableSystemsCollection = await systems.searchSystems(new SystemFilter(),4885);
+            const availableSystems = await availableSystemsCollection.nextPage();
+            console.log(availableSystems);
+
+            const lane1 = availableSystems.filter((sys: any) => sys.properties.id === "n193hf1emj38a");
+
+            // const lane1 = availableSystems[4]; // Get whichever lane, filter by "properties.properties.uid" to ensure it matches "urn:osh:system:lane"
+
+            console.log("Lane 1", lane1)
+
+            const lane1SubsystemsCollection = await lane1[0].searchMembers(); // Returns collection of subsystems of the lane
+            const lane1Subsystems = await lane1SubsystemsCollection.nextPage();
+            console.log(lane1Subsystems);
+
+            if(samplingFeatures != undefined) {
+
+                const availFoiCol = await samplingFeatures.searchFeaturesOfInterest(new FeatureOfInterestFilter(), 10);
+                console.log('availFOiCo', availFoiCol);
+                const availFoi = await availFoiCol.nextPage();
+                console.log('FOI:' + availFoi);
+            }
+
+
+
+        // Retrieve certain drivers from
+            // const rpmDriver = lane1Subsystems.find((system: typeof System) => system.properties.properties.uid.startsWith("urn:osh:sensor:rapiscan"));
+
+            // Retrieve ALL Datastreams from a system
+            // const rpmDatastreamsCollection = await rpmDriver.searchDataStreams(undefined, /*pageSize = */30); // Get all datastreams
+            // // Filter by observed property, this yields only the "Occupancy" Datastream
+            // const rpmOccupancyStreamsCollection = await rpmDriver.searchDataStreams(new DataStreamFilter({ observedProperty: ["http://www.opengis.net/def/occupancy"] }))
+
+            // const occupancyDatastream = (await rpmOccupancyStreamsCollection.nextPage())[0];
+
+            // You can directly subscribe to a datastreams observations
+            // occupancyDatastream.streamObservations(undefined, (message: any) => {
+            //   console.log(message);
+            // });
+
+            // Or create a SweApi for videostream observations
+            // const process = availableSystems.find((system: typeof System) => system.properties.properties.uid.includes("urn:osh:sensor:"));
+            // console.log("Process: ")
+            // console.log(process)
+            // const processDatastreamsCol = await process.searchDataStreams(undefined, 50);
+            // const processDatastreams = await processDatastreamsCol.nextPage();
+            // console.log("Process datastreams: ")
+            // console.log(processDatastreams)
+            // const videoDatastreamsCol = await videoDriver.searchDataStreams(new DataStreamFilter({ ObservationFilter: ["http://www.opengis.net/def/Video"] }));
+
+            // Get all datastreams from a node paginated for whatever size
+            // if(datastreams !== undefined) {
+            //     const allDatastreamsCol = await datastreams.searchDataStreams(new DataStreamFilter({
+            //         q: "urn:osh:sta:sensor:移動式設備坐標:227",
+            //     }), /*pageSize = */100);
+            //     const allDatastreams = await allDatastreamsCol.nextPage();
+            //     const filteredDatastreams = allDatastreams.filter((ds: any) => ds.properties.observedProperties[0].definition.includes(""));
+            //     console.log(filteredDatastreams);
+            // }
+        }
+
+        fetchSystems();
+
+    }
+    , []);
+
+    useEffect(() => {
+
+        if (!leafletViewRef.current && !isInit) {
+            let view = new LeafletView({
+                container: mapcontainer,
+                layers: [],
+
+                autoZoomOnFirstMarker: true
+            });
+            console.log('new view created')
+            leafletViewRef.current = view;
+            setIsInt(true);
+        }
+
+    }, [isInit]);
+
     // useEffect(() => {
     //     if(locationList && locationList.length > 0 && isInit){
     //         locationList.forEach((location) => {
