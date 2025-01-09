@@ -67,7 +67,6 @@ export interface NodeOptions {
     auth?: { username: string, password: string } | null,
     isSecure?: boolean,
     isDefaultNode?: boolean
-    laneAdjMap?: Map<string, string>
 }
 
 export class Node implements INode {
@@ -82,7 +81,6 @@ export class Node implements INode {
     isSecure: boolean;
     auth: { username: string, password: string } | null = null;
     isDefaultNode: boolean;
-    laneAdjMap: Map<string, string> = new Map<string, string>();
 
     constructor(options: NodeOptions) {
         this.id = "node-" + randomUUID();
@@ -216,17 +214,17 @@ export class Node implements INode {
             if (system.properties?.properties?.uid.includes("sta")) {
                 // console.log("TK Found lane system:", system);
                 // let laneName = system.properties.properties.uid.split(":").pop();
-                let laneName = system.properties.properties.name;
+                let stationName = system.properties.properties.name;
 
-                if (laneMap.has(laneName)) {
-                    laneMap.get(laneName).systems.push(system);
-                    laneMap.get(laneName).setLaneSystem(system);
+                if (laneMap.has(stationName)) {
+                    laneMap.get(stationName).systems.push(system);
+                    laneMap.get(stationName).setLaneSystem(system);
                 } else {
                     let tLaneEntry = new LaneMapEntry(this);
-                    tLaneEntry.setLaneName(laneName);
-                    laneMap.set(laneName, tLaneEntry);
+                    tLaneEntry.setStationName(stationName);
+                    laneMap.set(stationName, tLaneEntry);
                     // console.log("TK LaneMap:", laneMap, laneName);
-                    let entry = laneMap.get(laneName);
+                    let entry = laneMap.get(stationName);
                     entry.addSystem(system);
                     entry.setLaneSystem(system);
                 }
@@ -234,7 +232,7 @@ export class Node implements INode {
                 let subsystems = await system.searchMembers();
                 while (subsystems.hasNext()) {
                     let subsystemResults = await subsystems.nextPage();
-                    laneMap.get(laneName).addSystems(subsystemResults);
+                    laneMap.get(stationName).addSystems(subsystemResults);
                 }
             }
         }

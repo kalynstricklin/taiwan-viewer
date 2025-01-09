@@ -75,14 +75,14 @@ export default function DataSourceProvider({children}: { children: ReactNode }) 
             }
             let nodeControlStreams = await node.fetchControlStreams()
 
-            nodeLaneMap.forEach((value, key) => {
-                const controlStream = nodeControlStreams.find((cStream: any) =>
-                    value.systems.some((system) => system.properties.id === cStream['system@id'])
-                );
-                console.log("Found Matching Control Stream", controlStream);
-                value.addControlStreamId(controlStream.id);
-                allLanes.set(key, value);
-            });
+            // nodeLaneMap.forEach((value, key) => {
+            //     const controlStream = nodeControlStreams.find((cStream: any) =>
+            //         value.systems.some((system) => system.properties.id === cStream['system@id'])
+            //     );
+            //     console.log("Found Matching Control Stream", controlStream);
+            //     value.addControlStreamId(controlStream.id);
+            //     allLanes.set(key, value);
+            // });
         }));
 
 

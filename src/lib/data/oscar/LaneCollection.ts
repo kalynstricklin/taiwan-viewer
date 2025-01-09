@@ -19,7 +19,6 @@ class ILaneMeta {
     name: string;
     label: string;
     systemIds: string[];
-    hasEML: boolean;
 }
 
 export class LaneMeta implements ILaneMeta {
@@ -27,14 +26,13 @@ export class LaneMeta implements ILaneMeta {
     name: string;
     label: string;
     systemIds: string[];
-    hasEML: boolean;
+
 
     constructor(name: string, systemIds: string[], hasEML: boolean = false) {
         this.id = "station" + randomUUID();
         this.name = name;
         this.label = name.replace(" ", "_").toLowerCase();
         this.systemIds = systemIds;
-        this.hasEML = hasEML;
     }
 }
 
@@ -46,9 +44,7 @@ export class LaneMapEntry {
     datasourcesRealtime: any[];
     parentNode: INode;
     laneSystem: typeof System;
-    private adjDs: string;
-    adjControlStreamId: string;
-    laneName: string;
+    stationName: string;
 
     constructor(node: INode) {
         this.systems = [];
@@ -57,7 +53,7 @@ export class LaneMapEntry {
         this.datasourcesBatch = [];
         this.datasourcesRealtime = [];
         this.parentNode = node;
-        this.laneName = undefined
+        this.stationName = undefined
     }
 
     setLaneSystem(system: typeof System) {
@@ -87,8 +83,8 @@ export class LaneMapEntry {
     addDatasources(datasources: any[]) {
         this.datasources.push(...datasources);
     }
-    setLaneName(name: string){
-        this.laneName = name;
+    setStationName(name: string){
+        this.stationName = name;
     }
 
 
@@ -201,7 +197,4 @@ export class LaneMapEntry {
         return stream;
     }
 
-    addControlStreamId(id: string) {
-        this.adjControlStreamId = id;
-    }
 }
