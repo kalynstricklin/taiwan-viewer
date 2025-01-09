@@ -9,7 +9,7 @@ import {selectLaneMap, setLaneMap} from "@/lib/state/OSCARClientSlice";
 import {RootState} from "@/lib/state/Store";
 import {LaneMapEntry} from "@/lib/data/oscar/LaneCollection";
 import {OSHSliceWriterReader} from "@/lib/data/state-management/OSHSliceWriterReader";
-import AlarmAudio from "../_components/AlarmAudio";
+
 
 interface IDataSourceContext {
     laneMapRef: MutableRefObject<Map<string, LaneMapEntry>> | undefined
@@ -68,6 +68,8 @@ export default function DataSourceProvider({children}: { children: ReactNode }) 
             console.log("Fetching lanes from node ", node);
             let nodeLaneMap = await node.fetchLaneSystemsAndSubsystems();
             await node.fetchDatastreamsTK(nodeLaneMap);
+
+            console.log("Datastream", await node.fetchDatastreamsTK(nodeLaneMap));
             for (let mapEntry of nodeLaneMap.values()) {
                 mapEntry.addDefaultSWEAPIs();
             }
@@ -83,13 +85,6 @@ export default function DataSourceProvider({children}: { children: ReactNode }) 
             });
         }));
 
-        // fetch adjudication systems
-        let adjMap: Map<string, string> = new Map();
-        for(let node of nodes){
-            console.log("[ADJ] Fetching adjudication systems for node: ", node, allLanes);
-            adjMap = await node.fetchOrCreateAdjudicationSystems(allLanes);
-        }
-        console.log("[ADJ] Adjudication Systems Map:", adjMap);
 
         dispatch(setLaneMap(allLanes));
         laneMapRef.current = allLanes;
@@ -122,7 +117,6 @@ export default function DataSourceProvider({children}: { children: ReactNode }) 
     }, [InitializeApplication]);
 
     return (<>
-        <AlarmAudio/>
         <DataSourceContext.Provider value={{laneMapRef}}>
             {children}
         </DataSourceContext.Provider>

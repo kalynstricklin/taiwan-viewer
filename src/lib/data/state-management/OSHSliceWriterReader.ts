@@ -62,6 +62,7 @@ export class OSHSliceWriterReader {
         let epUri = encodeURIComponent(`f=application/om+json&resultTime=latest`);
         let ep = `${node.getConnectedSystemsEndpoint()}/datastreams/${dsId}/observations?`;
 
+        console.log('ep', ep)
         const response = await fetch(ep, {
             method: 'POST',
             body: body,
@@ -296,6 +297,7 @@ export class OSHSliceWriterReader {
             let dsId = await this.checkForConfigDatastream(node, sysId);
             let epUri = encodeURIComponent(`f=application/om+json&resultTime=latest`);
             let ep = `${node.getConnectedSystemsEndpoint()}/datastreams/${dsId}/observations?${epUri}`;
+            console.log('ep', ep);
             let configResp = await fetch(ep, {
                 method: 'GET',
                 headers: {

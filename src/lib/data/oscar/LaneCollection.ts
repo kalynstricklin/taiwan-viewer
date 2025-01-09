@@ -11,7 +11,7 @@ import DataStreams from "osh-js/source/core/sweapi/datastream/DataStreams.js";
 import {INode} from "@/lib/data/osh/Node";
 import {Mode} from "osh-js/source/core/datasource/Mode";
 import {EventType} from "osh-js/source/core/event/EventType";
-import {AdjudicationData} from "@/lib/data/oscar/TableHelpers";
+
 import {isDynamicUsageError} from "next/dist/export/helpers/is-dynamic-usage-error";
 
 class ILaneMeta {
@@ -30,7 +30,7 @@ export class LaneMeta implements ILaneMeta {
     hasEML: boolean;
 
     constructor(name: string, systemIds: string[], hasEML: boolean = false) {
-        this.id = "lane" + randomUUID();
+        this.id = "station" + randomUUID();
         this.name = name;
         this.label = name.replace(" ", "_").toLowerCase();
         this.systemIds = systemIds;
@@ -91,23 +91,6 @@ export class LaneMapEntry {
         this.laneName = name;
     }
 
-    async getAdjudicationDatastream(dsId: string) {
-        let isSecure = this.parentNode.isSecure;
-        let url = this.parentNode.getConnectedSystemsEndpoint(true);
-        console.log("[ADJ-log] Creating Adjudication Datastream: ", this, url);
-        let dsApi = new DataStreams({
-            // streamProtocol: isSecure ? "https" : "http",
-            endpointUrl: `${url}`,
-            tls: isSecure,
-            connectorOpts: {
-                username: this.parentNode.auth.username,
-                password: this.parentNode.auth.password
-            }
-        });
-        let datastream = await dsApi.getDataStreamById(dsId);
-        console.log("[ADJ-log] Adjudication Datastream: ", datastream);
-        return datastream;
-    }
 
     resetDatasources() {
         for (let ds of this.datasourcesRealtime) {
@@ -216,128 +199,6 @@ export class LaneMapEntry {
             return hasProp;
         });
         return stream;
-    }
-
-
-    /**
-     * Retrieves datastreams within the specified time range and categorizes them by event detail types.
-     *
-     * @param {number} startTime - The start time of the range for datastreams.
-     * @param {number} endTime - The end time of the range for datastreams.
-     * @return {Map<string, typeof SweApi[]>} A map categorizing the replayed datastreams by their event detail types.
-     */
-    getDatastreamsForEventDetail(startTime: string, endTime: string): Map<string, typeof SweApi[]> {
-
-        let dsMap: Map<string, typeof SweApi[]> = new Map();
-        dsMap.set('occ', []);
-        dsMap.set('gamma', []);
-        dsMap.set('neutron', []);
-        dsMap.set('tamper', []);
-        dsMap.set('video', []);
-        dsMap.set('gammaTrshld', []);
-
-        for (let ds of this.datastreams) {
-
-            let idx: number = this.datastreams.indexOf(ds);
-            let datasourceReplay = this.createReplaySweApiFromDataStream(ds, startTime, endTime);
-            let datasourceBatch = this.createBatchSweApiFromDataStream(ds, startTime, endTime);
-
-            // move some of this into another function to remove code redundancy
-            if (ds.properties.name.includes('Driver - Occupancy')) {
-            // if (ds.properties.observedProperties[0].definition.includes("http://www.opengis.net/def/pillar-occupancy-count")) {
-                let occArray = dsMap.get('occ')!;
-                const index = occArray.findIndex(dsItem => dsItem.properties.name === datasourceBatch.properties.name);
-                if (index !== -1) {
-                    occArray[index] = datasourceBatch;
-                } else {
-                    occArray.push(datasourceBatch);
-                }
-            }
-            if (ds.properties.name.includes('Driver - Gamma Count')) {
-            // if(ds.properties.observedProperties[0].definition.includes("http://www.opengis.net/def/alarm") && ds.properties.observedProperties[1].definition.includes("http://www.opengis.net/def/gamma-gross-count")){
-
-                let gammaArray = dsMap.get('gamma')!;
-                const index = gammaArray.findIndex(dsItem => dsItem.properties.name === datasourceBatch.properties.name);
-                if (index !== -1) {
-                    gammaArray[index] = datasourceBatch;
-                } else {
-                    gammaArray.push(datasourceBatch);
-                }
-            }
-            if (ds.properties.name.includes('Driver - Neutron Count')) {
-            // if(ds.properties.observedProperties[0].definition.includes("http://www.opengis.net/def/alarm") && ds.properties.observedProperties[1].definition.includes("http://www.opengis.net/def/gamma-gross-count")){
-                let neutronArray = dsMap.get('neutron')!;
-                const index = neutronArray.findIndex(dsItem => dsItem.properties.name === datasourceBatch.properties.name);
-                if (index !== -1) {
-                    neutronArray[index] = datasourceBatch;
-                } else {
-                    neutronArray.push(datasourceBatch);
-                }
-            }
-            if (ds.properties.name.includes('Driver - Tamper')) {
-            // if(ds.properties.observedProperties[0].definition.includes("http://www.opengis.net/def/tamper-status")){
-                let tamperArray = dsMap.get('tamper')!;
-                const index = tamperArray.findIndex(dsItem => dsItem.properties.name === datasourceBatch.properties.name);
-                if (index !== -1) {
-                    tamperArray[index] = datasourceBatch;
-                } else {
-                    tamperArray.push(datasourceBatch);
-                }
-            }
-            if (ds.properties.name.includes('Video')) {
-            // if(ds.properties.observedProperties[0].definition.includes("http://sensorml.com/ont/swe/property/RasterImage")){
-                let videoArray = dsMap.get('video')!;
-                const index = videoArray.findIndex(dsItem => dsItem.properties.name === datasourceReplay.properties.name);
-                if (index !== -1) {
-                    videoArray[index] = datasourceReplay;
-                } else {
-                    videoArray.push(datasourceReplay);
-                }
-            }
-            if (ds.properties.name.includes('Driver - Gamma Threshold')) {
-            // if(ds.properties.observedProperties[0].definition.includes("http://www.opengis.net/def/threshold")){
-                let gammaTrshldArray = dsMap.get('gammaTrshld')!;
-                const index = gammaTrshldArray.findIndex(dsItem => dsItem.properties.name === datasourceBatch.properties.name);
-
-                if (index !== -1) {
-                    gammaTrshldArray[index] = datasourceBatch;
-                } else {
-                    gammaTrshldArray.push(datasourceBatch);
-                }
-            }
-        }
-        return dsMap;
-    }
-
-    async insertAdjudicationSystem(laneName: string) {
-        console.log("[ADJ] Inserting Adjudication System for lane: ", this);
-        let laneId = this.laneSystem.properties.properties.uid.split(":").pop();
-        let adJSysJSON = {
-            "type": "SimpleProcess",
-            "uniqueId": `urn:ornl:client:adjudication:${laneId}`,
-            "label": `Adjudication System - ${laneName}`,
-            "definition": "sosa:System"
-        }
-        console.log("[ADJ] Inserting Adjudication System: ", adJSysJSON);
-        let sysId: string = await this.parentNode.insertAdjSystem(adJSysJSON);
-        console.log("[ADJ] Inserted Adjudication System: ", sysId);
-        // let dsId = this.insertAdjudicationDataStream(laneName);
-        return sysId;
-    }
-
-    async insertAdjudicationDataStream(systemId: string) {
-        let dsRes = await this.parentNode.insertAdjDatastream(systemId);
-        if (dsRes) {
-            console.log("[ADJ] Inserted Adjudication Datastream: ", dsRes);
-            this.adjDs = dsRes;
-        }
-    }
-
-    async insertAdjudicationObservation(obsData: AdjudicationData) {
-        let obsRes = await this.parentNode.insertObservation(obsData, this.adjDs);
-        if (obsRes) {
-            console.log("[ADJ] Inserted Adjudication Observation: ", obsRes);
-        }
     }
 
     addControlStreamId(id: string) {
@@ -494,6 +355,6 @@ export class LaneDSColl {
         for (let ds of this.videoRT) {
             ds.connect();
         }
-        console.info("Connecting all datasources of:", this);
+        // console.info("Connecting all datasources of:", this);
     }
 }

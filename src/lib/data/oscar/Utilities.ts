@@ -8,7 +8,6 @@ import SweApi from "osh-js/source/core/datasource/sweapi/SweApi.datasource";
 import {LaneMeta} from "@/lib/data/oscar/LaneCollection";
 
 /**
- *
  * @param laneDatastreams map of lane name to specific datastreams
  * @param datasource singular SweApi Datasource
  * @param sourceToStreamMap map of datasource id to datastream id, from state, typically

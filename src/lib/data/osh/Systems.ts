@@ -25,7 +25,6 @@ export class System implements ISystem {
     parentSystemId: string | null;
 
     constructor(id: string, uid: string, name: string, parentNode: INode, parentSystemId: string | null) {
-        // this.id = "system" + randomUUID();
         this.id = id;
         this.uid = uid;
         this.name = name;

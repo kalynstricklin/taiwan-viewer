@@ -136,21 +136,6 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       icon: <DashboardRoundedIcon />,
       href: "/dashboard",
     },
-    {
-      title: "Events",
-      icon: <WarningRoundedIcon />,
-      href: "/event-log",
-    },
-    {
-      title: "Map",
-      icon: <LocationOnRoundedIcon />,
-      href: "/map",
-    },
-    {
-      title: "National",
-      icon: <MediationIcon />,
-      href: "/national-view",
-    },
   ]
 
   // Settings items for drawer
@@ -202,7 +187,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           </IconButton>
           <Stack direction={"row"} width={"100%"} alignItems={"center"} justifyContent={"space-between"}>
             <Typography variant="h6" noWrap component="div">
-              OSCAR
+              SensorThings Ingest Viewer
             </Typography>
             <IconButton
               color="inherit"
