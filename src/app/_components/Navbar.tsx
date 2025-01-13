@@ -134,17 +134,17 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
     {
       title: "Dashboard",
       icon: <DashboardRoundedIcon />,
-      href: "/dashboard",
+      href: "/",
     },
   ]
 
   // Settings items for drawer
   const settingsItems = [
-    {
-      title: "Account",
-      icon: <AccountCircleRoundedIcon />,
-      href: "/",
-    },
+    // {
+    //   title: "Account",
+    //   icon: <AccountCircleRoundedIcon />,
+    //   href: "/account",
+    // },
     {
       title: "Servers",
       icon: <CloudRoundedIcon />,

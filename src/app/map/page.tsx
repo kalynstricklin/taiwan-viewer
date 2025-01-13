@@ -7,7 +7,7 @@ import {useMemo} from "react";
 export default function MapViewPage() {
 
     const Map = useMemo(() => dynamic(
-        () => import('@/app/_components/maps/MapComponent'),
+        () => import('@/app/_components/baseComp/MapComponent'),
         {
             loading: () => <p> loading </p>,
             ssr: false
