@@ -50,6 +50,8 @@ export default function MapComponent(props: MapProps) {
         popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
     })
 
+    const [isSidebarOpen, setIsSidebarOpen]= useState(false);
+
     useEffect(()=>{
         setFeatures(props.stationArray);
 
@@ -105,7 +107,7 @@ export default function MapComponent(props: MapProps) {
                                 if (observations && observations.length > 0) {
                                     //loop through observations and get the name and value and add it to an array with the same key
                                     observations.forEach((ob: any) => {
-                                        console.log('observation', ob);
+
                                         let resultName = Object.keys(ob.result)[0];
                                         let resultVal = Object.values(ob.result)[0];
                                         let resultTimestamp = ob.resultTime;
@@ -124,15 +126,14 @@ export default function MapComponent(props: MapProps) {
                             }
 
 
-                            console.log("obs", obs);
+                            // console.log("obs", obs);
 
                         });
                     }
 
 
-
                     marker.on('click', function() {
-                        // Create a parent div for the chart container
+
                         var parent = document.createElement('div');
                         parent.id = 'chart-container';
                         parent.style.width = '500px';
@@ -187,20 +188,48 @@ export default function MapComponent(props: MapProps) {
                             title: `Station ${foi.features.properties.properties.name} Details`,
                             pane: parent
                         });
-
-
                         sidebar.open('home');
+
+                        // console.log('isSidebarOpen', isSidebarOpen);
+
+                        // if(isSidebarOpen){
+                        //     sidebar.close();
+                        //     setIsSidebarOpen(false);
+                        // }else{
+                        //     setIsSidebarOpen(true);
+                        //     // Create a parent div for the chart container
+                        //
+                        //
+                        //
+                        // }
+
+                        // sidebar.on('closing', function(e: any){
+                        //     console.log('e', e.id)
+                        //     if(e.id === 'home'){
+                        //         sidebar.removePanel(e.id);
+                        //
+                        //     }
+                        //
+                        // })
+
+
+
+
+
 
                         // marker.bindPopup(parent).openPopup();
                     });
 
-
-
+                    // marker.on('popupclose', function(){
+                    //     sidebar.removePanel('home');
+                    //     sidebar.close()
+                    // })
 
 
                 }
             }
         })
+
 
 
     }, [features]);
@@ -217,10 +246,10 @@ export default function MapComponent(props: MapProps) {
             return null;
         }
     }
-    
+
     return (
         <div>
-            <div id="map" style={{width: '100%', height: '900px'}}>
+            <div id="map" style={{width: '100%', height: '1000px'}}>
                 <div id="sidebar" className="leaflet-sidebar collapsed bg-light">
                    <div className="sidebar-tabs">
                        <ul role="tablist">

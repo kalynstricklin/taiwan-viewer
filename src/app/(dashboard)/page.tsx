@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
         if(stationsList === null || stationsList.length == 0){
             async function fetchFois(){
-                const allFoiCol = await features.searchFeaturesOfInterest(undefined, 99999);
+                const allFoiCol = await features.searchFeaturesOfInterest(undefined, 999999);
                 const allFois = await allFoiCol.nextPage();
 
                 // console.log("FOIs", allFois);
@@ -51,7 +51,7 @@ export default function DashboardPage() {
 
             }
             async function fetchDataStreamsFromFoi(foi: typeof FeatureOfInterest) {
-                const dsCol = await datastreams.searchDataStreams(new DataStreamFilter({ foi: foi.properties.id }), 10000);
+                const dsCol = await datastreams.searchDataStreams(new DataStreamFilter({ foi: foi.properties.id }), 100000);
                 const ds = await dsCol.nextPage();
 
                 // console.log("ds", ds)
@@ -63,15 +63,7 @@ export default function DashboardPage() {
                 station.push(st);
             }
 
-            // async function fetchObservations(){
-            //     const obsCol = await observations.searchObservations(new ObservationFilter(), 1000);
-            //     const obs = await obsCol.nextPage();
-            //
-            //     console.log("obss", obs)
-            // }
             fetchFois();
-
-            // fetchObservations();
             setStationsList(station);
         }
 
@@ -115,23 +107,6 @@ export default function DashboardPage() {
                         <MapComponent stationArray={stationsList}/>
                     </Paper>
                 </Grid>
-                {/*<Grid item xs={5} spacing={2}>*/}
-                {/*    {*/}
-                {/*        selectedPoint ? (*/}
-                {/*            <>*/}
-                {/*                <Typography variant="h6">Point selected</Typography>*/}
-                {/*                /!*<EventDetails selectedPoint={selectedPoint}/>*!/*/}
-                {/*            </>*/}
-                {/*        ) : (*/}
-                {/*            <Paper variant='outlined' sx={{height: "100%", padding: "10px"}}>*/}
-                {/*                <Typography variant="h6">Select a point on the map to view details!</Typography>*/}
-
-                {/*                <VideoComponent stationSelected={stationsList}/>*/}
-                {/*            </Paper>*/}
-                {/*        )*/}
-                {/*    }*/}
-
-                {/*</Grid>*/}
             </Grid>
         </Grid>
     );
