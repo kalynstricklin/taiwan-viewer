@@ -129,15 +129,7 @@ export default function MapComponent(props: MapProps) {
                         });
                     }
 
-                    // sidebar.addPanel({
-                    //     id: 'home',
-                    //     tab: '<i class="fa fa-info"></i>',
-                    //     title: `Station ${foi.features.properties.properties.name} Details`,
-                    //
-                    // });
-                    //
-                    // sidebar.open('home');
-                    // });
+
 
                     marker.on('click', function() {
                         // Create a parent div for the chart container
@@ -189,7 +181,17 @@ export default function MapComponent(props: MapProps) {
                             });
                         });
 
-                        marker.bindPopup(parent).openPopup();
+                        sidebar.addPanel({
+                            id: 'home',
+                            tab: '<i class="fa fa-info"></i>',
+                            title: `Station ${foi.features.properties.properties.name} Details`,
+                            pane: parent
+                        });
+
+
+                        sidebar.open('home');
+
+                        // marker.bindPopup(parent).openPopup();
                     });
 
 
@@ -203,10 +205,7 @@ export default function MapComponent(props: MapProps) {
 
     }, [features]);
 
-    const createChartDiv = ()=>{
-        const chartDiv = document.createElement('div');
-        chartDiv.classList.add('chart-container');
-    }
+
 
     async function fetchObservations(ds: any){
         try{
@@ -218,9 +217,7 @@ export default function MapComponent(props: MapProps) {
             return null;
         }
     }
-
-
-
+    
     return (
         <div>
             <div id="map" style={{width: '100%', height: '900px'}}>
@@ -243,150 +240,3 @@ export default function MapComponent(props: MapProps) {
 
     );
 }
-
-
-// marker.on('click', () => {
-
-// document.getElementById('chart-container').innerHTML = '';
-
-// let obs: {[key: string] : {value: any; timeStamp: string}[]} = {};
-//
-//
-// if(foi.datastreams.length > 0){
-//     foi.datastreams.map(async (ds: any)=>{
-//         // console.log("filter", await fetchObservations(ds));
-//         try{
-//             const observations = await fetchObservations(ds);
-//
-//             //check if observations exists
-//             if(observations && observations.length > 0){
-//                 //loop through observations and get the name and value and add it to an array with the same key
-//                 observations.forEach((ob: any)=>{
-//                     let resultName =  Object.keys(ob.result)[0];
-//                     let resultVal =  Object.values(ob.result)[0];
-//                     let resultTimestamp = ob.resultTime;
-//
-//                     if(!obs[resultName]){
-//                         obs[resultName] = [];
-//                     }
-//                     obs[resultName].push({value: resultVal, timeStamp: resultTimestamp});
-//                     // console.log('ob result', resultName, resultVal)
-//                 });
-//                 // obs.push(...observations);
-//             }
-//
-//
-//             console.log("obs", obs)
-//             //loop through obs and create a chart
-//             Object.keys(obs).forEach((key: any) =>{
-//
-//                 console.log("key", key)
-//                 const data = obs[key];
-//
-//                 const labels = data.map((o: any) => o.timeStamp)
-//                 const values =   data.map((o: any) => o.value)
-//
-//                 //create chart container for each chart based on key
-//                 const chartId = `chart-${key}`;
-//                 const chartContainer = document.createElement(`canvas`);
-//                 chartContainer.id = chartId;
-//
-//
-//
-//                 //create charts
-//                 console.log('creating chart', chartId)
-//
-//                 const chart = createLineChart(chartId, labels, values, key);
-//                 document.getElementById('chart-container').appendChild(chartContainer);
-//
-//
-//             })
-//
-//
-//
-//             setObservations(obs);
-//
-//         }catch(error: any){
-//             console.warn("error during obs fetch,", error)
-//         }
-//     });
-// }
-
-
-
-// marker.addTo(mapRef.current);
-
-
-
-
-//    function getDsContent(ds: any){
-//         // console.log("dss", ds)
-//
-//         if(ds && ds.length > 0){
-//
-//         }
-//
-//
-//
-//         return (
-//             `
-//             `
-//         )
-//     }
-//
-//     function getStationContent(foiSelected: any, latitude: any, longitude: any) {
-//         let imgSrc = '';
-//         let foiDS = foiSelected.datastreams;
-//
-//         // console.log("selected foi dsss", foiSelected.datastreams)
-//
-//
-//         // <img src="` + imgSrc + `"/>
-//         return (
-//             `<b>Station ID:</b> ${foiSelected.features.properties.properties.name} <br> <b>Coordinates:</b> ${latitude}, ${longitude} <br>`
-//         )
-//
-//     }
-
-
-
-// marker.on('click', (e: any) =>{
-//
-//
-// });
-
-//loop through obs and create a chart
-// Object.keys(obs).forEach((key: any) => {
-//
-//     console.log("obs key", key)
-//
-//     //create chart div
-//     var popupContent = document.createElement('div');
-//     popupContent.classList.add('chart-container');
-//
-//
-//     //create chart container for each chart based on key
-//     const chartId = `chart-${key}`;
-//
-//     var canvas = document.createElement('canvas');
-//     canvas.id = chartId;
-//
-//     // get labels and values for charts based on observations key
-//     const data = obs[key];
-//
-//     const labels = data.map((o: any) => o.timeStamp)
-//     const values = data.map((o: any) => o.value)
-//
-//
-//     var ctx = canvas.getContext('2d');
-//     //create charts
-//     // console.log('creating chart', chartId)
-//
-//     popupContent.appendChild(canvas);
-//
-//     createLineChart(ctx, labels, values, key);
-//     // var popup = e.target.getPopup();
-//     // var chart_div = document.getElementById(chartId);
-//     // popup.setContent(chart_div);
-//
-// });
