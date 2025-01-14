@@ -189,13 +189,6 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
             <Typography variant="h6" noWrap component="div">
               SensorThings
             </Typography>
-            <IconButton
-              color="inherit"
-              aria-label="open notifications"
-              onClick={handleMenuOpen}
-            >
-              <NotificationsRoundedIcon />
-            </IconButton>
           </Stack>
         </Toolbar>
       </AppBar>

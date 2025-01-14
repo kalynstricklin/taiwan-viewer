@@ -84,7 +84,7 @@ export default function MapComponent(props: MapProps) {
         //if no map or no FOI return
         if (!mapRef.current || !features || features.length === 0) return;
 
-        console.log('feat', features)
+        console.log('featur', features)
         const sidebar = L.control.sidebar({container: 'sidebar'}).addTo(mapRef.current);
 
         //loop through foi and if it has coordinates plot them on map
@@ -103,7 +103,7 @@ export default function MapComponent(props: MapProps) {
 
                         marker.bindPopup(`<b>Station ID:</b> ${foi.features.properties.properties.name} <br> <b>Coordinates:</b> ${latitude}, ${longitude} <br>`).addTo(mapRef.current);
 
-                        let chartObs: {[key: string] : {value: any; timeStamp: string}[]} = {};
+                        let chartObs: {[key: string] : {name: any; value: any; timeStamp: string}[]} = {};
 
                         foi.datastreams.map(async (ds: any) => {
                             try {
@@ -114,8 +114,11 @@ export default function MapComponent(props: MapProps) {
 
                                     //loop through observations and get the name and value and add it to an array with the same key
                                     observations.forEach((ob: any) => {
+                                        console.log('ob', ob);
 
 
+                                        let datastreamName = ds.properties.name;
+                                        console.log('datastream name', datastreamName)
                                         let resultName = Object.keys(ob.result)[0];
                                         let resultVal = Object.values(ob.result)[0];
                                         let resultTimestamp = ob.resultTime;
@@ -123,7 +126,7 @@ export default function MapComponent(props: MapProps) {
                                         if (!chartObs[resultName]) {
                                             chartObs[resultName] = [];
                                         }
-                                        chartObs[resultName].push({value: resultVal, timeStamp: resultTimestamp});
+                                        chartObs[resultName].push({name: datastreamName, value: resultVal, timeStamp: resultTimestamp});
 
                                     });
                                 }
@@ -153,6 +156,8 @@ export default function MapComponent(props: MapProps) {
                                 // Get labels and values for charts based on observation keys
                                 const data = chartObs[key];
                                 if(data && data.length > 0){
+
+                                    const name = data[0].name;
 
                                     const labels = data.map((o) => o.timeStamp);
                                     const values = data.map((o) => o.value);
@@ -253,6 +258,13 @@ export default function MapComponent(props: MapProps) {
 
                                         const chartOptions = {
                                             maintainAspectRatio: false,
+                                            plugins: {
+                                                title:{
+                                                    display: true,
+                                                    text: name
+                                                }
+                                            }
+
                                         };
 
                                         new Chart(canvas.getContext('2d'), {
@@ -326,75 +338,3 @@ export default function MapComponent(props: MapProps) {
 
     );
 }
-
-
-
-// Object.keys(videoObs).forEach((key)=>{
-//
-//     const videos = videoObs[key];
-//     if(videos && videos.length > 0){
-//         marker = L.marker([latitude, longitude],{icon: videoIcon});
-//
-//         const videoUrl = videos.map((vid: any)=>{ vid.value});
-//
-//
-//         console.log('video key', videoObs, videoUrl)
-//
-//         let popupContent = `Station ID:</b> ${foi.features.properties.properties.name} <br><b>Coordinates:</b> ${latitude}, ${longitude} <br>`;
-//
-//         popupContent += `
-//                 <div id="slideshow" style="max-width: 200px; max-height: 150px; position: relative; overflow: hidden;">
-//                     <img id="" src="${videoUrl}" style="width: 100%; height: auto;" />
-//                 </div>
-//               `;
-//
-//         // if(videoObs['即時影像']){
-//         //     videoObs['即時影像'].forEach((video: any)=>{
-//         //         popupContent + `<video src="${video.value}" controls style="max-width: 200px; max-height: 150px; margin-top: 10px;"></video>`
-//         //     })
-//         // }
-//
-//         marker.bindPopup(popupContent);
-//         marker.addTo(mapRef.current);
-//         // `<img src="${videoUrl}" alt="Observation Image" style="max-width: 200px; max-height: 150px;"/>`
-//
-//     }
-//
-// })
-//if(videos && videos.length > 0){
-//
-//
-//
-//                                             data.forEach((v) =>{
-//
-//                                             })
-//
-//                                             videoDiv.appendChild(vid);
-//                                             parent.appendChild(videoDiv);
-//
-//
-//
-//                                             // marker = L.marker([latitude, longitude],{icon: videoIcon});
-//                                             //
-//                                             // const videoUrl = videos.map((vid: any)=>{ vid.value});
-//
-//
-//                                           //   console.log('video key', videoObs, videoUrl)
-//                                           //
-//                                           //   let popupContent = `Station ID:</b> ${foi.features.properties.properties.name} <br><b>Coordinates:</b> ${latitude}, ${longitude} <br>`;
-//                                           //
-//                                           //   popupContent += `
-//                                           //   <div id="slideshow" style="max-width: 200px; max-height: 150px; position: relative; overflow: hidden;">
-//                                           //       <img id="" src="${videoUrl}" style="width: 100%; height: auto;" />
-//                                           //   </div>
-//                                           // `;
-//
-//                                             // if(videoObs['即時影像']){
-//                                             //     videoObs['即時影像'].forEach((video: any)=>{
-//                                             //         popupContent + `<video src="${video.value}" controls style="max-width: 200px; max-height: 150px; margin-top: 10px;"></video>`
-//                                             //     })
-//                                             // }
-//
-//                                             // marker.bindPopup(popupContent);
-//                                             // marker.addTo(mapRef.current);
-//                                             // `<img src="${videoUrl}" alt="Observation Image" style="max-width: 200px; max-height: 150px;"/>`

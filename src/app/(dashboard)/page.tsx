@@ -54,7 +54,7 @@ export default function DashboardPage() {
                 const dsCol = await datastreams.searchDataStreams(new DataStreamFilter({ foi: foi.properties.id }), 999999);
                 const ds = await dsCol.nextPage();
 
-                // console.log("ds", ds)
+
 
                 const st: Station ={
                     features: foi,
