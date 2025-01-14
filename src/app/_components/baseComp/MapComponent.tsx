@@ -1,6 +1,6 @@
 "use client"
 
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import '../../style/map.css';
 import "leaflet/dist/leaflet.css"
 import L from "leaflet";
@@ -21,7 +21,6 @@ import {
 
 } from 'chart.js'
 
-
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -35,11 +34,16 @@ ChartJS.register(
 interface MapProps{
     stationArray: any;
 }
+
+// <div className="App" style={{ flex: 1, flexDirection: 'row'}}>
+//     {obsArray.map((obs, index) => (
+//         <img key={index} src={obs.result["即時影像"]} alt={`Data from observation ${obs.id}`} />
+//     ))}
+// </div>
 export default function MapComponent(props: MapProps) {
     const mapRef = useRef(null);
 
     const [features, setFeatures] = useState(props.stationArray);
-    const [observations, setObservations] = useState(null);
 
     var defaultIcon = L.icon({
         iconUrl: '/mapMarker.svg',
@@ -50,7 +54,15 @@ export default function MapComponent(props: MapProps) {
         popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
     })
 
-    const [isSidebarOpen, setIsSidebarOpen]= useState(false);
+    var videoIcon = L.icon({
+        iconUrl: '/video.svg',
+        iconSize:     [38, 95], // size of the icon
+        shadowSize:   [50, 64], // size of the shadow
+        iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+        shadowAnchor: [4, 62],  // the same for the shadow
+        popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
+    })
+    const [sidebarPanelId, setSidebarPanelId] = useState<any | null>(null);
 
     useEffect(()=>{
         setFeatures(props.stationArray);
@@ -72,173 +84,217 @@ export default function MapComponent(props: MapProps) {
         //if no map or no FOI return
         if (!mapRef.current || !features || features.length === 0) return;
 
-        const sidebar = L.control.sidebar({
-            autopan: false,
-            closeButton: true,
-            container: 'sidebar',
-            position: 'left',
-        }).addTo(mapRef.current);
+        console.log('feat', features)
+        const sidebar = L.control.sidebar({container: 'sidebar'}).addTo(mapRef.current);
 
         //loop through foi and if it has coordinates plot them on map
         features.forEach((foi: any)=>{
-
-            console.log('fois', foi)
 
             //add marker for foi that have coordinates :p
             if (foi.features.properties.geometry && foi.features.properties.geometry?.coordinates) {
 
                 const [longitude, latitude] = foi.features.properties.geometry.coordinates;
 
-                // console.log("coordinate", foi.features.properties.geometry.coordinates);
                 if (latitude && longitude) {
 
-                    const marker = L.marker([latitude, longitude],{icon: defaultIcon});
-                    marker.bindPopup(`<b>Station ID:</b> ${foi.features.properties.properties.name} <br> <b>Coordinates:</b> ${latitude}, ${longitude} <br>`).addTo(mapRef.current);
-
-                    let obs: {[key: string] : {value: any; timeStamp: string}[]} = {};
-
-
                     if(foi.datastreams.length > 0) {
+
+                        let marker = L.marker([latitude, longitude],{icon: defaultIcon});
+
+                        marker.bindPopup(`<b>Station ID:</b> ${foi.features.properties.properties.name} <br> <b>Coordinates:</b> ${latitude}, ${longitude} <br>`).addTo(mapRef.current);
+
+                        let chartObs: {[key: string] : {value: any; timeStamp: string}[]} = {};
+
                         foi.datastreams.map(async (ds: any) => {
                             try {
                                 const observations = await fetchObservations(ds);
 
                                 //check if observations exists
                                 if (observations && observations.length > 0) {
+
                                     //loop through observations and get the name and value and add it to an array with the same key
                                     observations.forEach((ob: any) => {
+
 
                                         let resultName = Object.keys(ob.result)[0];
                                         let resultVal = Object.values(ob.result)[0];
                                         let resultTimestamp = ob.resultTime;
 
-                                        if (!obs[resultName]) {
-                                            obs[resultName] = [];
+                                        if (!chartObs[resultName]) {
+                                            chartObs[resultName] = [];
                                         }
-                                        obs[resultName].push({value: resultVal, timeStamp: resultTimestamp});
-                                        // console.log('ob result', resultName, resultVal)
+                                        chartObs[resultName].push({value: resultVal, timeStamp: resultTimestamp});
+
                                     });
-                                    // obs.push(...observations);
                                 }
                             } catch
                                 (error: any) {
                                 console.warn("error during obs fetch,", error)
                             }
-
-
-                            // console.log("obs", obs);
-
                         });
-                    }
 
 
-                    marker.on('click', function() {
 
-                        var parent = document.createElement('div');
-                        parent.id = 'chart-container';
-                        parent.style.width = '500px';
-                        parent.style.height = 'auto';
+                        marker.on('click', function() {
 
-                        // Loop through observation keys and create a chart for each
-                        Object.keys(obs).forEach((key) => {
-                            // Get labels and values for charts based on observation keys
-                            const data = obs[key];
-                            const labels = data.map((o) => o.timeStamp);
-                            const values = data.map((o) => o.value);
-                            console.log('chart data!', labels, "values:", values);
+                            if(sidebarPanelId){
+                                sidebar.removePanel(sidebarPanelId);
+                            }
 
-                            var div = document.createElement('div');
-                            div.id = `chart-${key}`;
-                            div.style.width = '400px';
-                            div.style.height = '300px';
+                            var parent = document.createElement('div');
+                            parent.id = 'observation-container';
+                            parent.style.width = '500px';
+                            parent.style.height = 'auto';
 
 
-                            var canvas = document.createElement('canvas');
-                            canvas.id = `canvas-${key}`;
-                            div.appendChild(canvas);
+                            // Loop through observation keys and create a chart or table!
+                            Object.keys(chartObs).forEach((key) => {
 
-                            parent.appendChild(div);
+                                // Get labels and values for charts based on observation keys
+                                const data = chartObs[key];
+                                if(data && data.length > 0){
 
-                            const initChartData = {
-                                labels: labels,
-                                datasets: [
-                                    {
-                                        label: key,
-                                        data: values,
-                                        borderColor: 'blue',
-                                        borderWidth: 1,
-                                    },
-                                ],
-                            };
+                                    const labels = data.map((o) => o.timeStamp);
+                                    const values = data.map((o) => o.value);
 
-                            const chartOptions = {
-                                maintainAspectRatio: false,
-                            };
 
-                            new Chart(canvas.getContext('2d'), {
-                                type: 'line',
-                                data: initChartData,
-                                options: chartOptions,
+                                    if(key === 'status' || key === 'pollutant'){
+
+                                        var tableDiv = document.createElement('div');
+                                        tableDiv.id = `chart-${key}`;
+                                        tableDiv.style.width = '400px';
+                                        tableDiv.style.height = 'auto';
+
+                                        var table = document.createElement('table');
+                                        table.id = `table-${key}`;
+                                        tableDiv.appendChild(table);
+                                        parent.appendChild(tableDiv);
+
+                                        var thead = document.createElement('thead');
+                                        var headerRow = document.createElement('tr');
+
+                                        var thKey = document.createElement('th');
+                                        thKey.textContent = 'Observation';
+                                        var thTimestamp = document.createElement('th');
+                                        thTimestamp.textContent = 'Timestamp';
+                                        var thVal = document.createElement('th');
+                                        thVal.textContent = 'Value';
+
+                                        headerRow.appendChild(thKey);
+                                        headerRow.appendChild(thTimestamp);
+                                        headerRow.appendChild(thVal);
+
+                                        thead.appendChild(headerRow);
+                                        table.appendChild(thead);
+
+                                        var tableBody = document.createElement('tbody');
+                                        data.forEach((val, index)=>{
+                                            var row = document.createElement('tr');
+                                            var tdKey = document.createElement('td');
+                                            tdKey.textContent = key;
+                                            var tdTimestamp = document.createElement('td');
+                                            tdTimestamp.textContent = val.timeStamp;
+                                            var tdValue = document.createElement('td');
+                                            tdValue.textContent = val.value;
+
+                                            row.appendChild(tdKey);
+                                            row.appendChild(tdTimestamp);
+                                            row.appendChild(tdValue);
+
+                                            tableBody.appendChild(row);
+                                        });
+                                        table.appendChild(tableBody);
+
+
+                                    }
+                                    else if(key === '即時影像'){
+
+                                        const video = data[0].value;
+                                        if(video){
+                                            var videoDiv = document.createElement('div');
+                                            videoDiv.id = `video-container`;
+                                            videoDiv.style.width = '400px';
+                                            videoDiv.style.height = 'auto';
+
+                                            var vid = document.createElement('img');
+                                            vid.style.width = '400px';
+                                            vid.style.height = 'auto';
+                                            vid.src= video;
+
+                                            videoDiv.appendChild(vid);
+                                            parent.appendChild(videoDiv);
+                                        }
+
+                                    }
+                                    else{
+
+                                        var chartDiv = document.createElement('div');
+                                        chartDiv.id = `chart-${key}`;
+                                        chartDiv.style.width = '400px';
+                                        chartDiv.style.height = '300px';
+
+                                        var canvas = document.createElement('canvas');
+                                        canvas.id = `canvas-${key}`;
+                                        chartDiv.appendChild(canvas);
+
+                                        parent.appendChild(chartDiv);
+
+                                        const initChartData = {
+                                            labels: labels,
+                                            datasets: [
+                                                {
+                                                    label: key,
+                                                    data: values,
+                                                    borderColor: 'blue',
+                                                    borderWidth: 1,
+                                                },
+                                            ],
+                                        };
+
+                                        const chartOptions = {
+                                            maintainAspectRatio: false,
+                                        };
+
+                                        new Chart(canvas.getContext('2d'), {
+                                            type: 'line',
+                                            data: initChartData,
+                                            options: chartOptions,
+                                        });
+
+                                    }
+
+
+                                }
+
+
+
                             });
+
+                            const panelId = 'home-' + foi.features.properties.properties.name;
+
+                            sidebar.addPanel({
+                                id: 'observation',
+                                tab: foi.features.properties.properties.name,
+                                title: "Station ${foi.features.properties.properties.name} Details",
+                                pane: parent
+                            });
+                            setSidebarPanelId(panelId);
+                            sidebar.open('observation');
                         });
 
-                        sidebar.addPanel({
-                            id: 'home',
-                            tab: '<i class="fa fa-info"></i>',
-                            title: `Station ${foi.features.properties.properties.name} Details`,
-                            pane: parent
-                        });
-                        sidebar.open('home');
-
-                        // console.log('isSidebarOpen', isSidebarOpen);
-
-                        // if(isSidebarOpen){
-                        //     sidebar.close();
-                        //     setIsSidebarOpen(false);
-                        // }else{
-                        //     setIsSidebarOpen(true);
-                        //     // Create a parent div for the chart container
-                        //
-                        //
-                        //
-                        // }
-
-                        // sidebar.on('closing', function(e: any){
-                        //     console.log('e', e.id)
-                        //     if(e.id === 'home'){
-                        //         sidebar.removePanel(e.id);
-                        //
-                        //     }
-                        //
-                        // })
 
 
-
-
-
-
-                        // marker.bindPopup(parent).openPopup();
-                    });
-
-                    // marker.on('popupclose', function(){
-                    //     sidebar.removePanel('home');
-                    //     sidebar.close()
-                    // })
-
-
+                    }
                 }
             }
-        })
-
-
-
+        });
     }, [features]);
 
 
-
+    //function to fetch observatgions on current foi datastreams
     async function fetchObservations(ds: any){
         try{
-            const obsCol =  await ds.searchObservations(new ObservationFilter(), 10000);
+            const obsCol =  await ds.searchObservations(new ObservationFilter(), 100000);
             const obs = await obsCol.nextPage();
             return obs;
         }catch(error: any){
@@ -251,17 +307,18 @@ export default function MapComponent(props: MapProps) {
         <div>
             <div id="map" style={{width: '100%', height: '1000px'}}>
                 <div id="sidebar" className="leaflet-sidebar collapsed bg-light">
-                   <div className="sidebar-tabs">
-                       <ul role="tablist">
-                           <li><a href="#home" role="tab"><i className="fa fa-bars"></i></a></li>
-                       </ul>
-                   </div>
-
-                    <div className="leaflet-sidebar-content">
-                        <div className="sidebar-pane" id="home">
-                        </div>
+                    <div className="sidebar-tabs">
+                        <ul role="tablist">
+                            <li><a href="#home" role="tab"><i className="fa fa-bars"></i></a></li>
+                        </ul>
                     </div>
 
+                    {/*<div className="leaflet-sidebar-content">*/}
+                    {/*    <div className="leaflet-sidebar-pane" id="observation">*/}
+
+                    {/*    </div>*/}
+
+                    {/*</div>*/}
                 </div>
             </div>
 
@@ -269,3 +326,75 @@ export default function MapComponent(props: MapProps) {
 
     );
 }
+
+
+
+// Object.keys(videoObs).forEach((key)=>{
+//
+//     const videos = videoObs[key];
+//     if(videos && videos.length > 0){
+//         marker = L.marker([latitude, longitude],{icon: videoIcon});
+//
+//         const videoUrl = videos.map((vid: any)=>{ vid.value});
+//
+//
+//         console.log('video key', videoObs, videoUrl)
+//
+//         let popupContent = `Station ID:</b> ${foi.features.properties.properties.name} <br><b>Coordinates:</b> ${latitude}, ${longitude} <br>`;
+//
+//         popupContent += `
+//                 <div id="slideshow" style="max-width: 200px; max-height: 150px; position: relative; overflow: hidden;">
+//                     <img id="" src="${videoUrl}" style="width: 100%; height: auto;" />
+//                 </div>
+//               `;
+//
+//         // if(videoObs['即時影像']){
+//         //     videoObs['即時影像'].forEach((video: any)=>{
+//         //         popupContent + `<video src="${video.value}" controls style="max-width: 200px; max-height: 150px; margin-top: 10px;"></video>`
+//         //     })
+//         // }
+//
+//         marker.bindPopup(popupContent);
+//         marker.addTo(mapRef.current);
+//         // `<img src="${videoUrl}" alt="Observation Image" style="max-width: 200px; max-height: 150px;"/>`
+//
+//     }
+//
+// })
+//if(videos && videos.length > 0){
+//
+//
+//
+//                                             data.forEach((v) =>{
+//
+//                                             })
+//
+//                                             videoDiv.appendChild(vid);
+//                                             parent.appendChild(videoDiv);
+//
+//
+//
+//                                             // marker = L.marker([latitude, longitude],{icon: videoIcon});
+//                                             //
+//                                             // const videoUrl = videos.map((vid: any)=>{ vid.value});
+//
+//
+//                                           //   console.log('video key', videoObs, videoUrl)
+//                                           //
+//                                           //   let popupContent = `Station ID:</b> ${foi.features.properties.properties.name} <br><b>Coordinates:</b> ${latitude}, ${longitude} <br>`;
+//                                           //
+//                                           //   popupContent += `
+//                                           //   <div id="slideshow" style="max-width: 200px; max-height: 150px; position: relative; overflow: hidden;">
+//                                           //       <img id="" src="${videoUrl}" style="width: 100%; height: auto;" />
+//                                           //   </div>
+//                                           // `;
+//
+//                                             // if(videoObs['即時影像']){
+//                                             //     videoObs['即時影像'].forEach((video: any)=>{
+//                                             //         popupContent + `<video src="${video.value}" controls style="max-width: 200px; max-height: 150px; margin-top: 10px;"></video>`
+//                                             //     })
+//                                             // }
+//
+//                                             // marker.bindPopup(popupContent);
+//                                             // marker.addTo(mapRef.current);
+//                                             // `<img src="${videoUrl}" alt="Observation Image" style="max-width: 200px; max-height: 150px;"/>`

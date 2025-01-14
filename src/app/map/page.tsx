@@ -2,7 +2,7 @@
 
 import {Box, Paper, Typography} from "@mui/material";
 import dynamic from "next/dynamic";
-import {useMemo} from "react";
+import React, {useMemo} from "react";
 
 export default function MapViewPage() {
 

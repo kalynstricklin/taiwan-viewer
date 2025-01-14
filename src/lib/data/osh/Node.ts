@@ -94,7 +94,7 @@ export class Node implements INode {
     getConnectedSystemsEndpoint(noProtocolPrefix: boolean = false) {
         let protocol = this.isSecure ? 'https' : 'http';
         // return `${protocol}://${this.address}:${this.port}${this.oshPathRoot}${this.csAPIEndpoint}`;
-        console.log("NODE TEST GET CSAPI ENDPOINT", this);
+        // console.log("NODE TEST GET CSAPI ENDPOINT", this);
         return noProtocolPrefix ? `${this.address}:${this.port}${this.oshPathRoot}${this.csAPIEndpoint}`
             : `${protocol}://${this.address}:${this.port}${this.oshPathRoot}${this.csAPIEndpoint}`;
     }
@@ -163,16 +163,16 @@ export class Node implements INode {
         let fetchedSystems: ISystem[] = [];
         // first, fetch the systems
         const systems_arr = await this.fetchSystems();
-        console.log("Systems:", systems_arr);
+        // console.log("Systems:", systems_arr);
         for (let system of systems_arr) {
-            console.log("System:", system);
+            // console.log("System:", system);
             const newSystem = new System(system.id, system.properties.uid, system.properties.name, this, null);
-            console.log("New System:", newSystem);
+            // console.log("New System:", newSystem);
             fetchedSystems.push(newSystem);
             const uidSplit = system.properties.uid.split(":");
             // Test for lane signature in uid
             if (system.properties.uid.includes("urn:osh:system:")) {
-                console.info("Found System matching lane signature");
+                // console.info("Found System matching lane signature");
                 const newLaneName = system.properties.name;
                 // Fetch subsystems
                 const subsystems = await newSystem.fetchSubsystems();
@@ -181,11 +181,11 @@ export class Node implements INode {
                 systemIds.unshift(newSystem.id);
                 // Create a new LaneMeta object
                 let newLaneMeta = new LaneMeta(newLaneName, systemIds);
-                console.info("New Lane Created:", newLaneMeta);
+                // console.info("New Lane Created:", newLaneMeta);
                 fetchedLanes.push(newLaneMeta);
             }
         }
-        console.log("LaneFetched these objects:", fetchedLanes, fetchedSystems);
+        // console.log("LaneFetched these objects:", fetchedLanes, fetchedSystems);
         return {lanes: fetchedLanes, systems: fetchedSystems};
     }
 
@@ -194,14 +194,14 @@ export class Node implements INode {
         // check if node is reachable first
         let isReachable = OSHSliceWriterReader.checkForEndpoint(this);
         if (!isReachable) {
-            console.warn("Node is not reachable, check endpoint properties");
+            // console.warn("Node is not reachable, check endpoint properties");
             return new Map<string, LaneMapEntry>();
         }
 
         let systems = await this.fetchSystemsTK();
         let laneMap = new Map<string, LaneMapEntry>();
 
-        console.log("TK Systems retrieved!!!!:", systems);
+        // console.log("TK Systems retrieved!!!!:", systems);
 
         // filter into lanes
         for (let system of systems) {
@@ -267,7 +267,7 @@ export class Node implements INode {
                     laneEntry.addDatastreams(datastreamResults);
                 }
             } catch (error) {
-                console.error(`Error fetching datastreams for system ${laneEntry.laneSystem.id}:`, error);
+                // console.error(`Error fetching datastreams for system ${laneEntry.laneSystem.id}:`, error);
             }
         }
     }
@@ -316,7 +316,7 @@ export class Node implements INode {
         });
         if (response.ok) {
             let json = await response.json();
-            console.log("Control Streams", json['items']);
+            // console.log("Control Streams", json['items']);
             return json['items']
         } else {
             console.warn("Error getting Control Streams")

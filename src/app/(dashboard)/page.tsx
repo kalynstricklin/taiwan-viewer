@@ -33,7 +33,7 @@ export default function DashboardPage() {
 
     const datastreams = new DataStreams(networkOpts);
     const features = new FeaturesOfInterest(networkOpts);
-    const observations = new Observations(networkOpts);
+
 
     useEffect(()=>{
         let station: Station[] = [];
@@ -43,15 +43,15 @@ export default function DashboardPage() {
                 const allFoiCol = await features.searchFeaturesOfInterest(undefined, 999999);
                 const allFois = await allFoiCol.nextPage();
 
-                // console.log("FOIs", allFois);
+                // console.log("FOs", allFois);
 
-                for (let index = 0; index < 30; index++) {
-                    fetchDataStreamsFromFoi(allFois[index]);
+                for (let index = 0; index < 1000; index++) {
+                    await fetchDataStreamsFromFoi(allFois[index]);
                 }
 
             }
             async function fetchDataStreamsFromFoi(foi: typeof FeatureOfInterest) {
-                const dsCol = await datastreams.searchDataStreams(new DataStreamFilter({ foi: foi.properties.id }), 100000);
+                const dsCol = await datastreams.searchDataStreams(new DataStreamFilter({ foi: foi.properties.id }), 999999);
                 const ds = await dsCol.nextPage();
 
                 // console.log("ds", ds)
@@ -70,7 +70,7 @@ export default function DashboardPage() {
 
     }, []);
 
-    console.log("StationList", stationsList)
+    // console.log("StationList", stationsList)
 
 
     // const [selectedPoint, setSelectedPoint] = useState(null);

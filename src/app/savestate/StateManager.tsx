@@ -67,7 +67,7 @@ export default function StateManager() {
 
     const getCFGDataStream = useCallback(async () => {
         if (defaultNode) {
-            console.log("Default Node: ", defaultNode);
+            // console.log("Default Node: ", defaultNode);
             let cfgSystem = await OSHSliceWriterReader.checkForConfigSystem(defaultNode);
             if (cfgSystem) {
                 let dsId = await OSHSliceWriterReader.checkForConfigDatastream(defaultNode, cfgSystem);
@@ -99,11 +99,11 @@ export default function StateManager() {
         let responseJSON = await OSHSliceWriterReader.retrieveLatestConfig(targetNode);
         if (responseJSON) {
             setLoadSnackMsg('OSCAR State Loaded')
-            console.log("Config data retrieved: ", responseJSON);
+            // console.log("Config data retrieved: ", responseJSON);
 
             let cfgData = responseJSON.result.filedata;
             let cfgJSON = JSON.parse(cfgData);
-            console.log("Config data parsed: ", cfgJSON);
+            // console.log("Config data parsed: ", cfgJSON);
 
             dispatch(setCurrentUser(cfgJSON.user.currentUser));
 
@@ -125,7 +125,7 @@ export default function StateManager() {
 
     const handleChangeLoadForm = (e: React.ChangeEvent<HTMLInputElement>) => {
         const {name, value} = e.target;
-        console.log("Changing: ", name, value);
+        // console.log("Changing: ", name, value);
 
         switch (name) {
             case "address":
