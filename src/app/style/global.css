@@ -18,3 +18,29 @@ a, a:hover, a:focus, a:active {
   background: #808080;
   border-radius: 2px;
 }
+
+td, th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+tr:nth-child(even){
+  background-color: #f2f2f2;
+}
+
+tr:hover{
+  background-color: #ddd;
+}
+
+th{
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #3388ff;
+  color: white;
+}
+
+.leaflet-sidebar-tabs h3 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}

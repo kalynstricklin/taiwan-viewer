@@ -45,7 +45,8 @@ export default function DashboardPage() {
 
                 // console.log("FOs", allFois);
 
-                for (let index = 0; index < 1000; index++) {
+                for (let index = 0; index < 2500; index++) {
+                // for (let index = 0; index < allFois.length; index++) {
                     await fetchDataStreamsFromFoi(allFois[index]);
                 }
 

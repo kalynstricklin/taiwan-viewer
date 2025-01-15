@@ -1,10 +1,8 @@
-"use client"
-
-import React, {useEffect, useMemo, useRef, useState} from "react";
+import React, { useEffect, useState, useRef } from "react";
 import '../../style/map.css';
-import "leaflet/dist/leaflet.css"
+import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import {Chart} from "chart.js";
+import { Chart } from "chart.js";
 import ObservationFilter from "osh-js/source/core/sweapi/observation/ObservationFilter.js";
 import "leaflet-sidebar-v2";
 import "leaflet-sidebar-v2/css/leaflet-sidebar.min.css";
@@ -18,8 +16,7 @@ import {
     Tooltip,
     Legend,
     LineController,
-
-} from 'chart.js'
+} from 'chart.js';
 
 ChartJS.register(
     CategoryScale,
@@ -30,140 +27,142 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend
-)
-interface MapProps{
+);
+
+interface MapProps {
     stationArray: any;
 }
 
-// <div className="App" style={{ flex: 1, flexDirection: 'row'}}>
-//     {obsArray.map((obs, index) => (
-//         <img key={index} src={obs.result["即時影像"]} alt={`Data from observation ${obs.id}`} />
-//     ))}
-// </div>
 export default function MapComponent(props: MapProps) {
     const mapRef = useRef(null);
-
     const [features, setFeatures] = useState(props.stationArray);
+    const createdTabs = useRef<Set<string>>(new Set());
 
-    var defaultIcon = L.icon({
+    const defaultIcon = L.icon({
         iconUrl: '/mapMarker.svg',
-        iconSize:     [38, 95], // size of the icon
-        shadowSize:   [50, 64], // size of the shadow
-        iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
-        shadowAnchor: [4, 62],  // the same for the shadow
-        popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
-    })
+        iconSize: [38, 95],
+        shadowSize: [50, 64],
+        iconAnchor: [22, 94],
+        shadowAnchor: [4, 62],
+        popupAnchor: [-3, -76]
+    });
 
-    var videoIcon = L.icon({
-        iconUrl: '/video.svg',
-        iconSize:     [38, 95], // size of the icon
-        shadowSize:   [50, 64], // size of the shadow
-        iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
-        shadowAnchor: [4, 62],  // the same for the shadow
-        popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
-    })
-    const [sidebarPanelId, setSidebarPanelId] = useState<any | null>(null);
-
-    useEffect(()=>{
+    useEffect(() => {
         setFeatures(props.stationArray);
 
-        //if map exists return
-        if(mapRef.current) return;
+        if (mapRef.current) return;
 
-        //if no map create one!
         mapRef.current = L.map('map').setView([23.69781, 120.960515], 8);
 
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(mapRef.current);
-    },[]);
-
+    }, []);
 
     useEffect(() => {
-        //if no map or no FOI return
         if (!mapRef.current || !features || features.length === 0) return;
 
-        console.log('featur', features)
-        const sidebar = L.control.sidebar({container: 'sidebar'}).addTo(mapRef.current);
+        const sidebar = L.control.sidebar({ container: 'sidebar', position: 'right' }).addTo(mapRef.current);
 
-        //loop through foi and if it has coordinates plot them on map
-        features.forEach((foi: any)=>{
+        features.forEach((foi: any) => {
 
-            //add marker for foi that have coordinates :p
-            if (foi.features.properties.geometry && foi.features.properties.geometry?.coordinates) {
-
+            if (foi.features.properties.geometry?.coordinates) {
                 const [longitude, latitude] = foi.features.properties.geometry.coordinates;
 
                 if (latitude && longitude) {
+                    if (foi.datastreams.length > 0) {
 
-                    if(foi.datastreams.length > 0) {
+                        let marker = L.marker([latitude, longitude], { icon: defaultIcon });
 
-                        let marker = L.marker([latitude, longitude],{icon: defaultIcon});
+                        marker.bindPopup(`<b>Station ID:</b> ${foi.features.properties.properties.name} <br> <b>Coordinates:</b> ${latitude}, ${longitude}`).addTo(mapRef.current);
 
-                        marker.bindPopup(`<b>Station ID:</b> ${foi.features.properties.properties.name} <br> <b>Coordinates:</b> ${latitude}, ${longitude} <br>`).addTo(mapRef.current);
+                        let chartObs: { [key: string]: { name: any; value: any; timeStamp: string }[] } = {};
 
-                        let chartObs: {[key: string] : {name: any; value: any; timeStamp: string}[]} = {};
 
                         foi.datastreams.map(async (ds: any) => {
                             try {
                                 const observations = await fetchObservations(ds);
-
-                                //check if observations exists
                                 if (observations && observations.length > 0) {
-
-                                    //loop through observations and get the name and value and add it to an array with the same key
                                     observations.forEach((ob: any) => {
-                                        console.log('ob', ob);
-
-
                                         let datastreamName = ds.properties.name;
-                                        console.log('datastream name', datastreamName)
                                         let resultName = Object.keys(ob.result)[0];
                                         let resultVal = Object.values(ob.result)[0];
                                         let resultTimestamp = ob.resultTime;
 
+
+                                        // if(resultName === '即時影像'){
+                                        //     let subStr = "http://dfm.swcb.gov.tw"
+                                        //     let  string = resultVal.toString();
+                                        //     console.log('resultVal', string.includes(subStr));
+                                        //
+                                        //     if(string.includes(subStr)){
+                                        //         return;
+                                        //     }
+                                        //
+                                        // }
+
                                         if (!chartObs[resultName]) {
                                             chartObs[resultName] = [];
                                         }
-                                        chartObs[resultName].push({name: datastreamName, value: resultVal, timeStamp: resultTimestamp});
+                                        chartObs[resultName].push({ name: datastreamName, value: resultVal, timeStamp: resultTimestamp });
 
                                     });
                                 }
-                            } catch
-                                (error: any) {
-                                console.warn("error during obs fetch,", error)
+                            } catch (error: any) {
+                                console.warn("error during obs fetch", error)
                             }
                         });
 
 
 
-                        marker.on('click', function() {
+                        marker.on('click', function () {
 
-                            if(sidebarPanelId){
-                                sidebar.removePanel(sidebarPanelId);
+                            // if chartobs is null or empty close the sidebar.
+                            if(chartObs === null || Object.keys(chartObs).length === 0){
+                                sidebar.close();
+                                return;
                             }
 
-                            var parent = document.createElement('div');
-                            parent.id = 'observation-container';
-                            parent.style.width = '500px';
+
+
+                            const panelId = foi.features.properties.properties.name;
+
+                            const parent = document.createElement('div');
+                            parent.id = `observation-container-`+ panelId;
+                            parent.style.width = '450px';
                             parent.style.height = 'auto';
+                            //check if tab exists
+                            if (createdTabs.current.has(panelId)) {
+                                sidebar.open(panelId);
+                                return;
+                            }
 
+                            sidebar.addPanel({
+                                id: panelId,
+                                tab: panelId,
+                                title: `Station ${panelId} Details`,
+                                pane: parent
+                            });
+                            createdTabs.current.add(panelId);
 
-                            // Loop through observation keys and create a chart or table!
+                            // Loop through observation keys and create a chart or table or video
                             Object.keys(chartObs).forEach((key) => {
-
-                                // Get labels and values for charts based on observation keys
+                                console.log('chartobs', chartObs)
                                 const data = chartObs[key];
-                                if(data && data.length > 0){
-
+                                if (data && data.length > 0) {
                                     const name = data[0].name;
 
                                     const labels = data.map((o) => o.timeStamp);
                                     const values = data.map((o) => o.value);
 
+                                    //these charts are just dates, they dont seem relevant for this
+                                    if(key === 'dailyextremelowairtemperaturetime' || key === 'dailyextremehighairtemperaturetime'){
+                                        sidebar.close();
+                                        return;
+                                    }
 
-                                    if(key === 'status' || key === 'pollutant'){
+                                    if (key === 'status' || key === 'pollutant') {
 
                                         var tableDiv = document.createElement('div');
                                         tableDiv.id = `chart-${key}`;
@@ -193,7 +192,11 @@ export default function MapComponent(props: MapProps) {
                                         table.appendChild(thead);
 
                                         var tableBody = document.createElement('tbody');
-                                        data.forEach((val, index)=>{
+                                        data.forEach((val, index) => {
+
+                                            if(val.value === ""){
+                                                return;
+                                            }
                                             var row = document.createElement('tr');
                                             var tdKey = document.createElement('td');
                                             tdKey.textContent = key;
@@ -209,13 +212,13 @@ export default function MapComponent(props: MapProps) {
                                             tableBody.appendChild(row);
                                         });
                                         table.appendChild(tableBody);
-
-
                                     }
-                                    else if(key === '即時影像'){
+                                    else if(key === '即時影像' || key === "視訊監測影格照片 - 視訊監測影格照片" || key === "視訊監測影格照片"){
 
                                         const video = data[0].value;
-                                        if(video){
+
+                                        if(video && video.includes('.jpg')){
+
                                             var videoDiv = document.createElement('div');
                                             videoDiv.id = `video-container`;
                                             videoDiv.style.width = '400px';
@@ -228,8 +231,10 @@ export default function MapComponent(props: MapProps) {
 
                                             videoDiv.appendChild(vid);
                                             parent.appendChild(videoDiv);
+                                        }else {
+                                            sidebar.close();
+                                            return;
                                         }
-
                                     }
                                     else{
 
@@ -259,12 +264,11 @@ export default function MapComponent(props: MapProps) {
                                         const chartOptions = {
                                             maintainAspectRatio: false,
                                             plugins: {
-                                                title:{
+                                                title: {
                                                     display: true,
                                                     text: name
                                                 }
                                             }
-
                                         };
 
                                         new Chart(canvas.getContext('2d'), {
@@ -272,30 +276,13 @@ export default function MapComponent(props: MapProps) {
                                             data: initChartData,
                                             options: chartOptions,
                                         });
-
                                     }
-
-
                                 }
 
-
-
                             });
 
-                            const panelId = 'home-' + foi.features.properties.properties.name;
-
-                            sidebar.addPanel({
-                                id: 'observation',
-                                tab: foi.features.properties.properties.name,
-                                title: "Station ${foi.features.properties.properties.name} Details",
-                                pane: parent
-                            });
-                            setSidebarPanelId(panelId);
-                            sidebar.open('observation');
+                            sidebar.open(panelId);
                         });
-
-
-
                     }
                 }
             }
@@ -303,13 +290,12 @@ export default function MapComponent(props: MapProps) {
     }, [features]);
 
 
-    //function to fetch observatgions on current foi datastreams
-    async function fetchObservations(ds: any){
-        try{
-            const obsCol =  await ds.searchObservations(new ObservationFilter(), 100000);
+    async function fetchObservations(ds: any) {
+        try {
+            const obsCol = await ds.searchObservations(new ObservationFilter(), 10000);
             const obs = await obsCol.nextPage();
             return obs;
-        }catch(error: any){
+        } catch (error: any) {
             console.warn('error fetching obs', error);
             return null;
         }
@@ -317,24 +303,13 @@ export default function MapComponent(props: MapProps) {
 
     return (
         <div>
-            <div id="map" style={{width: '100%', height: '1000px'}}>
+            <div id="map" style={{ width: '100%', height: '1000px' }}>
                 <div id="sidebar" className="leaflet-sidebar collapsed bg-light">
-                    <div className="sidebar-tabs">
-                        <ul role="tablist">
-                            <li><a href="#home" role="tab"><i className="fa fa-bars"></i></a></li>
-                        </ul>
+                    <div className="leaflet-sidebar-tabs">
+
                     </div>
-
-                    {/*<div className="leaflet-sidebar-content">*/}
-                    {/*    <div className="leaflet-sidebar-pane" id="observation">*/}
-
-                    {/*    </div>*/}
-
-                    {/*</div>*/}
                 </div>
             </div>
-
         </div>
-
     );
 }
